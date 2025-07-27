@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Grid Splitter</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9e6d9; /* Warm background color */
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            outline: rgb(0, 0, 0) dotted 3px; /* Added outline as per your request */
+            outline-offset: 1px;
+        }
+        .guide {
+            background-color: #fff3cd; /* Light yellow background for guide */
+            border: 1px solid #ffeeba; /* Light yellow border */
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .guide h2 {
+            margin: 0 0 10px;
+            color: #856404; /* Dark yellow text */
+        }
+        .control-panel {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        label {
+            font-weight: 600;
+            color: #555;
+        }
+        input, button {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .image-container {
+            margin-top: 30px;
+            text-align: center;
+            position: relative;
+        }
+        #mainImage {
+            max-width: 100%;
+            display: block;
+            margin: 0 auto;
+        }
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .line {
+            position: absolute;
+            background-color: red; /* Main grid lines color */
+            opacity: 0.7;
+        }
+        .guide-line {
+            position: absolute;
+            background-color: rgba(255, 165, 0, 0.5); /* Light orange for guide lines */
+            opacity: 0.5;
+        }
+        .slice-label {
+            position: absolute;
+            background-color: rgba(0, 128, 255, 0.8); /* Light blue background */
+            color: white;
+            font-weight: bold;
+            text-shadow: 0 1px 5px black;
+            padding: 5px 10px;
+            border-radius: 5px;
+            pointer-events: none;
+            transform: translate(-50%, -50%); /* Center the label */
+        }
+        .slice-info {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            border-left: 4px solid #4CAF50;
+            display: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Image Grid Splitter</h1>
+        
+        <div class="guide">
+            <h2>How to Use:</h2>
+            <p>1. Upload an image using the "Upload Image" button.</p>
+            <p>2. Specify the number of rows and columns you want to split the image into.</p>
+            <p>3. Click the "Split Image" button to see the grid overlay on the image.</p>
+            <p>4. Each section will be labeled with its position (e.g., 1,1; 1,2).</p>
+            <p>5. Use the information table below to see details about each slice.</p>
+        </div>
+        
+        <div class="control-panel">
+            <div class="input-group">
+                <label for="imageInput">Upload Image:</label>
+                <input type="file" id="imageInput" accept="image/*">
+            </div>
+            
+            <div class="input-group">
+                <label for="rows">Rows:</label>
+                <input type="number" id="rows" min="1" max="20" value="3">
+            </div>
+            
+            <div class="input-group">
+                <label for="cols">Columns:</label>
+                <input type="number" id="cols" min="1" max="20" value="3">
+            </div>
+            
+            <button id="processBtn">Split Image</button>
+        </div>
+        
+        <div class="image-container">
+            <img id="mainImage" src="" alt="Uploaded Image" style="display: none;">
+            <div id="gridOverlay" class="grid-overlay"></div>
+        </div>
+        
+        <div id="sliceInfo" class="slice-info">
+            <h3>Slice Information</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Position</th>
+                        <th>Row</th>
+                        <th>Column</th>
+                        <th>Width</th>
+                        <th>Height</th>
+                    </tr>
+                </thead>
+                <tbody id="sliceTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const imageInput = document.getElementById('imageInput');
+            const rowsInput = document.getElementById('rows');
+            const colsInput = document.getElementById('cols');
+            const processBtn = document.getElementById('processBtn');
+            const mainImage = document.getElementById('mainImage');
+            const gridOverlay = document.getElementById('gridOverlay');
+            const sliceInfo = document.getElementById('sliceInfo');
+            const sliceTable = document.getElementById('sliceTable');
+            
+            let currentImage = null;
+            
+            // Handle image upload
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        currentImage = new Image();
+                        currentImage.src = event.target.result;
+                        currentImage.onload = function() {
+                            mainImage.src = currentImage.src;
+                            mainImage.style.display = 'block';
+                            gridOverlay.innerHTML = ''; // Clear previous grid
+                        };
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Process button click
+            processBtn.addEventListener('click', function() {
+                if (!currentImage) {
+                    alert('Please upload an image first');
+                    return;
+                }
+                
+                const rows = parseInt(rowsInput.value);
+                const cols = parseInt(colsInput.value);
+                
+                if (isNaN(rows) || isNaN(cols) || rows < 1 || cols < 1) {
+                    alert('Please enter valid numbers for rows and columns');
+                    return;
+                }
+                
+                drawGrid(rows, cols);
+            });
+            
+            // Draw grid overlay
+            function drawGrid(rows, cols) {
+                const sliceWidth = mainImage.width / cols;
+                const sliceHeight = mainImage.height / rows;
+                
+                // Clear previous slices
+                sliceTable.innerHTML = '';
+                gridOverlay.innerHTML = '';
+                
+                // Generate all slices
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        // Draw vertical lines
+                        if (col < cols - 1) {
+                            const verticalLine = document.createElement('div');
+                            verticalLine.className = 'line';
+                            verticalLine.style.width = '2px';
+                            verticalLine.style.height = `${mainImage.height}px`;
+                            verticalLine.style.left = `${(col + 1) * sliceWidth}px`;
+                            verticalLine.style.top = '0';
+                            gridOverlay.appendChild(verticalLine);
+                        }
+                        
+                        // Draw horizontal lines
+                        if (row < rows - 1) {
+                            const horizontalLine = document.createElement('div');
+                            horizontalLine.className = 'line';
+                            horizontalLine.style.width = `${mainImage.width}px`;
+                            horizontalLine.style.height = '2px';
+                            horizontalLine.style.left = '0';
+                            horizontalLine.style.top = `${(row + 1) * sliceHeight}px`;
+                            gridOverlay.appendChild(horizontalLine);
+                        }
+                        
+                        // Draw guide lines
+                        const guideLineVertical = document.createElement('div');
+                        guideLineVertical.className = 'guide-line';
+                        guideLineVertical.style.width = '1px';
+                        guideLineVertical.style.height = `${mainImage.height}px`;
+                        guideLineVertical.style.left = `${(col + 1) * sliceWidth}px`;
+                        guideLineVertical.style.top = '0';
+                        gridOverlay.appendChild(guideLineVertical);
+                        
+                        const guideLineHorizontal = document.createElement('div');
+                        guideLineHorizontal.className = 'guide-line';
+                        guideLineHorizontal.style.width = `${mainImage.width}px`;
+                        guideLineHorizontal.style.height = '1px';
+                        guideLineHorizontal.style.left = '0';
+                        guideLineHorizontal.style.top = `${(row + 1) * sliceHeight}px`;
+                        gridOverlay.appendChild(guideLineHorizontal);
+                        
+                        // Add slice label
+                        const label = document.createElement('div');
+                        label.className = 'slice-label';
+                        label.style.left = `${col * sliceWidth + sliceWidth / 2}px`;
+                        label.style.top = `${row * sliceHeight + sliceHeight / 2}px`;
+                        label.innerText = `${row + 1},${col + 1}`;
+                        gridOverlay.appendChild(label);
+                        
+                        // Add to info table
+                        const rowElement = document.createElement('tr');
+                        rowElement.innerHTML = `
+                            <td>${row + 1}-${col + 1}</td>
+                            <td>${row + 1}</td>
+                            <td>${col + 1}</td>
+                            <td>${sliceWidth.toFixed(2)}px</td>
+                            <td>${sliceHeight.toFixed(2)}px</td>
+                        `;
+                        sliceTable.appendChild(rowElement);
+                    }
+                }
+                
+                sliceInfo.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
